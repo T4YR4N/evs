@@ -1,5 +1,8 @@
 import fs from 'fs'
 import runShellCommand from './helper/runShellCommand'
+import {readStore, writeStore} from './store'
+import type {Store} from './store'
+import commandLineParser from './commandLineParser'
 
 const getDigest = async ([image, tag]: [string, string]) => {
 	const command = `docker manifest inspect ${image}:${tag} -v`
@@ -19,22 +22,25 @@ const getDigest = async ([image, tag]: [string, string]) => {
 	return digest
 }
   
-const generateSbom = async ([image, tag, digest]: [string, string, string]) => {
-	const command = `syft docker:${image}@${digest} -o cyclonedx-json`
+const generateSbom = async ([image, tag, digest]: [string, string, string], arg: ReturnType<typeof commandLineParser>) => {
+	const syftCommand = `syft ./images/${image}_${tag}.tar -o cyclonedx-json`
+	const trivyCommand = `trivy image --input ./images/${image}_${tag}.tar --format cyclonedx`
 
-	const sbom = JSON.parse(await runShellCommand(command))
+	if (arg === 'trivy') {
+		const sbom = await runShellCommand(trivyCommand)
+
+		fs.writeFileSync(`./sboms_trivy/${image}_${tag}.sbom.json`, sbom)
+
+		return `./sboms_trivy/${image}_${tag}.sbom.json`
+	}
+
+	const sbom = JSON.parse(await runShellCommand(syftCommand))
 	sbom.metadata.tools = undefined // this has to be done to ensure trivy compatibility, as trivy errors when trying to parse the tools object
 
-	fs.writeFileSync(`./sboms/${image}_${tag}.sbom.json`, JSON.stringify(sbom))
+	fs.writeFileSync(`./sboms_syft/${image}_${tag}.sbom.json`, JSON.stringify(sbom))
 
-	return `./sboms/${image}_${tag}.sbom.json`
+	return `./sboms_syft/${image}_${tag}.sbom.json`
 }
-
-/**
- * Store format:
- * [ image, tag, digest, sbomPath, DT-info ]
- */
-export type Store = [string, string, string, string, {uuid: string, token: string}|undefined][]
 
 export const images:[string, string][] = [
 	['alpine', '3.19'],
@@ -56,7 +62,8 @@ export const images:[string, string][] = [
 ]
 
 const main = async () => {
-	const store = JSON.parse(fs.readFileSync('./store.json').toString()) as Store
+	const arg = commandLineParser()
+	const store = readStore(arg)
 
 	const newImages = images.filter(([image, tag]) => !store.find(([storedImage, storedTag, storedDigest, storedPath, dtInfo]) => storedImage === image && storedTag === tag && fs.existsSync(storedPath)))
 
@@ -72,16 +79,17 @@ const main = async () => {
 	console.log(listNewImagesMessage)
 
 	const imagesWithDigests = await Promise.all(newImages.map(async (i) => {
-		return [...i, await getDigest(i)] as const
+		// return [...i, await getDigest(i)] as const
+		return [...i, 'placeholder'] as const
 	}))
 
 	const imagesWithSbomPaths = await Promise.all(imagesWithDigests.map(async (i) => {
-		return [...i, await generateSbom([...i])] as const
+		return [...i, await generateSbom([...i], arg)] as const
 	}))
 
 	const allImagesWithSbomPaths = [...store, ...imagesWithSbomPaths] as Store
 
-	fs.writeFileSync('./store.json', JSON.stringify(allImagesWithSbomPaths))
+	writeStore(arg, allImagesWithSbomPaths)
 }
 
 main()

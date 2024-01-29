@@ -130,6 +130,14 @@ dist
 .pnp.*
 
 # custom
-results
-sboms
-store.json
+results_trivy
+results_syft
+
+sboms_trivy
+sboms_syft
+
+store_trivy.json
+store_syft.json
+
+images
+notes

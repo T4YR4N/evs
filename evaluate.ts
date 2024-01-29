@@ -1,8 +1,10 @@
 import fs from 'fs'
 import { type GrypeResult, type TrivyResult } from './scan'
-import type { Store } from './generateSbom'
+import type { Store } from './store'
 import axios from 'axios'
 import { DTFinding, constructDTUrl, apiKey } from './dt'
+import {readStore} from './store'
+import commandLineParser from './commandLineParser'
 
 export type MappedResult = {
 	cves: string[],
@@ -140,27 +142,23 @@ const mapDTResult = (result: DTFinding[]) => {
 	return mappedResult
 }
 
-const readStore = () => {
-	const result = fs.readFileSync('./store.json').toString()
-	return JSON.parse(result) as Store
-}
-
 const main = async () => {
-	const images = readStore()
+	const arg = commandLineParser()
+	const images = readStore(arg)
 
 	const grypeResults = images.map(([image, tag, digest, sbomPath]) => {
-		const result = readGrypeResult(`./results/grype/${image}_${tag}.json`)
+		const result = readGrypeResult(`./results_${arg}/grype/${image}_${tag}.json`)
 		return mapGrypeResult(result)
 	})
 
 	const trivyResults = images.map(([image, tag, digest, sbomPath]) => {
-		const result = readTrivyResult(`./results/trivy/${image}_${tag}.json`)
+		const result = readTrivyResult(`./results_${arg}/trivy/${image}_${tag}.json`)
 		return mapTrivyResult(result)
 	})
 
 	const dtResults = await Promise.all(images.map(async ([image, tag, digest, sbomPath, dtInfo]) => {
 		if (!dtInfo) {
-			throw new Error('No dtInfo')
+			throw new Error(`No dtInfo for ${image}:${tag}`)
 		}
 
 		const result = await readDTResult([image, tag, digest, sbomPath, dtInfo])
@@ -219,10 +217,10 @@ const main = async () => {
 		}
 	})
 
-	const grypeData = overallAndPerToolFoundCvesPerImage.map((x) => x.grypeMatches)
-	const trivyData = overallAndPerToolFoundCvesPerImage.map((x) => x.trivyMatches)
-	const dtData = overallAndPerToolFoundCvesPerImage.map((x) => x.dtMatches)
-	const all = overallAndPerToolFoundCvesPerImage.map((x) => x.uniqueOverallMatches)
+	const grypeData = overallAndPerToolFoundCvesPerImage.map((x) => (x.grypeMatches / x.uniqueOverallMatches) * 100)
+	const trivyData = overallAndPerToolFoundCvesPerImage.map((x) => (x.trivyMatches / x.uniqueOverallMatches) * 100)
+	const dtData = overallAndPerToolFoundCvesPerImage.map((x) => (x.dtMatches / x.uniqueOverallMatches) * 100)
+	const all = overallAndPerToolFoundCvesPerImage.map((x) => 100)
 	const labels = overallAndPerToolFoundCvesPerImage.map((x) => `${x.image}:${x.tag}`)
 	
 	console.log(`const grypeData = ${JSON.stringify(grypeData)}`)

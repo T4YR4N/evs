@@ -6,8 +6,8 @@
   "scripts": {
     "scan": "ts-node-dev ./scan.ts",
     "evaluate": "ts-node-dev ./evaluate.ts",
-    "dt": "ts-node-dev ./dt.ts",
-    "generateSbom": "ts-node-dev ./generateSbom.ts"
+    "sbom": "ts-node-dev ./generateSbom.ts",
+    "test": "ts-node-dev ./test.ts"
   },
   "author": "",
   "license": "ISC",
