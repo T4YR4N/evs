@@ -141,3 +141,10 @@ store_syft.json
 
 images
 notes
+
+sboms
+results
+*.sboms.json
+*.results.json
+*.images.json
+*.list.json

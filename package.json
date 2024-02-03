@@ -4,10 +4,10 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "scan": "ts-node-dev ./scan.ts",
-    "evaluate": "ts-node-dev ./evaluate.ts",
-    "sbom": "ts-node-dev ./generateSbom.ts",
-    "test": "ts-node-dev ./test.ts"
+    "scan": "ts-node-dev ./src/scanAndPush.ts",
+    "evaluate": "ts-node-dev ./src/evaluate.ts",
+    "sbomGeneration": "ts-node-dev ./src/sbomGeneration.ts",
+    "test": "ts-node-dev ./src/scanAndPush.ts"
   },
   "author": "",
   "license": "ISC",
@@ -19,6 +19,7 @@
     "child_process": "^1.0.2",
     "docker-registry-client": "^3.4.0",
     "form-data": "^4.0.0",
+    "ts-command-line-args": "^2.5.1",
     "ts-node-dev": "^2.0.0"
   }
 }
