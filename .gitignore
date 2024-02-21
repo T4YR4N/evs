@@ -148,3 +148,4 @@ results
 *.results.json
 *.images.json
 *.list.json
+.DS_Store
