@@ -1,5 +1,5 @@
 {
-  "name": "autoeval",
+  "name": "evaluate-vuln-scanners",
   "version": "1.0.0",
   "description": "",
   "main": "index.ts",
