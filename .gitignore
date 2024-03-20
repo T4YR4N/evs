@@ -143,6 +143,7 @@ images
 notes
 
 sboms
+results_*
 results
 *.sboms.json
 *.results.json
